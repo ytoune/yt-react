@@ -34,25 +34,43 @@ export interface NodeInnerContext {
   onCleanup: Set<() => void>
   refs: { ref?: any }[]
 }
-let contextRefIdx = 0
-let context: NodeInnerContext | null = null
+const idxKey = ':yt-react:contextRefIdx'
+const ctxKey = ':yt-react:innerContext'
+const manager = (globalThis || window) as any as {
+  ':yt-react:contextRefIdx': 0
+  ':yt-react:innerContext': NodeInnerContext | null
+}
+undefined === manager[idxKey] &&
+  Object.defineProperty(manager, idxKey, {
+    value: 0,
+    writable: true,
+    configurable: true,
+    enumerable: false,
+  })
+undefined === manager[ctxKey] &&
+  Object.defineProperty(manager, ctxKey, {
+    value: null,
+    writable: true,
+    configurable: true,
+    enumerable: false,
+  })
 
 const useInnerContext = () => {
-  if (context) return context
+  if (manager[ctxKey]) return manager[ctxKey]
   throw new Error('no context')
 }
 
 const useInnerContextRef = () =>
-  (useInnerContext().refs[contextRefIdx++] ||= {})
+  (useInnerContext().refs[manager[idxKey]++] ||= {})
 
 export const usePin = () => useInnerContext().pin
 
 export const startAndSetInnerContext = (ctx: NodeInnerContext) => {
-  contextRefIdx = 0
-  context = ctx
+  manager[idxKey] = 0
+  manager[ctxKey] = ctx
 }
 export const endAndResetInnerContext = () => {
-  context = null
+  manager[ctxKey] = null
 }
 
 type Ref<V> = { current: V }
