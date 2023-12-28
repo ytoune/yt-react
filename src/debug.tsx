@@ -15,8 +15,8 @@ const App = () => {
   return jsx('div', {
     children: [
       jsx('p', { children: `${count}` }),
-      jsx('button', { onclick: () => setCount(c => c + 1), children: 'add' }),
-      jsx('button', { onclick: () => setCount(0), children: 'reset' }),
+      jsx('button', { onClick: () => setCount(c => c + 1), children: 'add' }),
+      jsx('button', { onClick: () => setCount(0), children: 'reset' }),
     ],
   })
 }
