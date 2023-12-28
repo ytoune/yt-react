@@ -12,7 +12,13 @@ const App = () => {
     }, 1000)
     return () => clearInterval(timer)
   })
-  return jsx('div', { children: jsx('div', { children: `${count}` }) })
+  return jsx('div', {
+    children: [
+      jsx('p', { children: `${count}` }),
+      jsx('button', { onclick: () => setCount(c => c + 1), children: 'add' }),
+      jsx('button', { onclick: () => setCount(0), children: 'reset' }),
+    ],
+  })
 }
 
 root.render(jsx(App, {}))

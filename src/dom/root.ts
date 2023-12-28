@@ -104,13 +104,27 @@ export const createRootImpl =
           ctx2.pin()
         }
         ctx.prev.children = contexts
-        for (const [k, v] of Object.entries(rest)) {
-          if (prevAttrs?.[k] === v) continue
-          if (v || 0 === v) n.setAttribute(k, `${v as string}`)
+        const setAttribute = (k: string, v: any) => {
+          if (prevAttrs?.[k]) removeAttribute(k)
+          if ('function' === typeof v)
+            // @ts-expect-error: ignore
+            n[k.toLowerCase()] = v
+          else n.setAttribute(k, `${v as string}`)
+        }
+        const removeAttribute = (k: string) => {
+          const p = prevAttrs?.[k]
+          if ('function' === typeof p)
+            // @ts-expect-error: ignore
+            n[k.toLowerCase()] = undefined
           else n.removeAttribute(k)
         }
+        for (const [k, v] of Object.entries(rest)) {
+          if (prevAttrs?.[k] === v) continue
+          if (v || 0 === v) setAttribute(k, v)
+          else removeAttribute(k)
+        }
         if (prevAttrs)
-          for (const k in prevAttrs) if (!(k in rest)) n.removeAttribute(k)
+          for (const k in prevAttrs) if (!(k in rest)) removeAttribute(k)
         return
       } else {
         const hash = JSON.stringify(
