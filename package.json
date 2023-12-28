@@ -18,6 +18,18 @@
     "./jsx-runtime": {
       "require": "./dist/jsx-runtime/index.js",
       "default": "./dist/jsx-runtime/index.modern.mjs"
+    },
+    "./dom": {
+      "require": "./dist/dom/index.js",
+      "default": "./dist/dom/index.modern.mjs"
+    },
+    "./hyperscript": {
+      "require": "./dist/hyperscript.js",
+      "default": "./dist/hyperscript.modern.mjs"
+    },
+    "./hooks": {
+      "require": "./dist/hooks.js",
+      "default": "./dist/hooks.modern.mjs"
     }
   },
   "publishConfig": {
@@ -34,7 +46,12 @@
     "!dist/debug.d.ts"
   ],
   "scripts": {
-    "build": "microbundle --jsxImportSource yt-react && microbundle --jsxImportSource yt-react -i src/jsx-runtime/index.ts -o dist/jsx-runtime/index.js",
+    "build": "rimraf dist && run-p -s \"build:*\"",
+    "build:index": "microbundle --jsxImportSource yt-react",
+    "build:jsx-runtime": "microbundle --jsxImportSource yt-react -i src/jsx-runtime/index.ts -o dist/jsx-runtime/index.js",
+    "build:dom": "microbundle --jsxImportSource yt-react -i src/dom/index.ts -o dist/dom/index.js",
+    "build:hyperscript": "microbundle --jsxImportSource yt-react -i src/hyperscript.ts -o dist/hyperscript.js",
+    "build:hooks": "microbundle --jsxImportSource yt-react -i src/hooks.ts -o dist/hooks.js",
     "test": "eslint '**/*.{ts,tsx}' && tsc --noEmit && vitest run --passWithNoTests",
     "ts-node": "node -r esbuild-register"
   },
@@ -52,6 +69,7 @@
     "eslint-plugin-import": "^2.29.1",
     "happy-dom": "12.10.3",
     "microbundle": "0.15.1",
+    "npm-run-all2": "6.1.1",
     "prettier": "^3.1.1",
     "rimraf": "^5.0.5",
     "typescript": "^5.3.3",
