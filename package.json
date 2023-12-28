@@ -1,6 +1,6 @@
 {
   "name": "@ytoune/yt-react",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "reimplementing react as an exercise",
   "author": {
     "name": "ytoune"
@@ -17,19 +17,23 @@
   "exports": {
     "./jsx-runtime": {
       "require": "./dist/jsx-runtime/index.js",
-      "default": "./dist/jsx-runtime/index.modern.mjs"
+      "default": "./dist/jsx-runtime/index.modern.mjs",
+      "types": "./dist/jsx-runtime/index.d.ts"
     },
     "./dom": {
       "require": "./dist/dom/index.js",
-      "default": "./dist/dom/index.modern.mjs"
+      "default": "./dist/dom/index.modern.mjs",
+      "types": "./dist/dom/index.d.ts"
     },
     "./hyperscript": {
       "require": "./dist/hyperscript.js",
-      "default": "./dist/hyperscript.modern.mjs"
+      "default": "./dist/hyperscript.modern.mjs",
+      "types": "./dist/hyperscript.d.ts"
     },
     "./hooks": {
       "require": "./dist/hooks.js",
-      "default": "./dist/hooks.modern.mjs"
+      "default": "./dist/hooks.modern.mjs",
+      "types": "./dist/hooks.d.ts"
     }
   },
   "publishConfig": {
@@ -47,11 +51,11 @@
   ],
   "scripts": {
     "build": "rimraf dist && run-p -s \"build:*\"",
-    "build:index": "microbundle --jsxImportSource yt-react",
-    "build:jsx-runtime": "microbundle --jsxImportSource yt-react -i src/jsx-runtime/index.ts -o dist/jsx-runtime/index.js",
-    "build:dom": "microbundle --jsxImportSource yt-react -i src/dom/index.ts -o dist/dom/index.js",
-    "build:hyperscript": "microbundle --jsxImportSource yt-react -i src/hyperscript.ts -o dist/hyperscript.js",
-    "build:hooks": "microbundle --jsxImportSource yt-react -i src/hooks.ts -o dist/hooks.js",
+    "build:index": "microbundle -i src/index.ts -o dist/index.js",
+    "build:jsx-runtime": "microbundle -i src/jsx-runtime/index.ts -o dist/jsx-runtime/index.js",
+    "build:dom": "microbundle -i src/dom/index.ts -o dist/dom/index.js",
+    "build:hyperscript": "microbundle -i src/hyperscript.ts -o dist/hyperscript.js",
+    "build:hooks": "microbundle -i src/hooks.ts -o dist/hooks.js",
     "test": "eslint '**/*.{ts,tsx}' && tsc --noEmit && vitest run --passWithNoTests",
     "ts-node": "node -r esbuild-register"
   },
