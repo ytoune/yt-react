@@ -1,5 +1,5 @@
 {
-  "name": "yt-react",
+  "name": "@ytoune/yt-react",
   "version": "0.0.1",
   "description": "reimplementing react as an exercise",
   "author": {
@@ -9,8 +9,32 @@
     "node": ">= 18"
   },
   "license": "MIT",
-  "private": true,
+  "source": "src/index.ts",
+  "main": "dist/index.js",
+  "module": "dist/index.module.js",
+  "types": "dist/index.d.ts",
+  "unpkg": "dist/index.umd.js",
+  "exports": {
+    "./jsx-runtime": {
+      "require": "./dist/jsx-runtime/index.js",
+      "default": "./dist/jsx-runtime/index.modern.mjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:ytoune/yt-react.git"
+  },
+  "homepage": "https://github.com/ytoune/yt-react",
+  "files": [
+    "dist",
+    "!dist/**/*.test.d.ts",
+    "!dist/debug.d.ts"
+  ],
   "scripts": {
+    "build": "microbundle --jsxImportSource yt-react && microbundle --jsxImportSource yt-react -i src/jsx-runtime/index.ts -o dist/jsx-runtime/index.js",
     "test": "eslint '**/*.{ts,tsx}' && tsc --noEmit && vitest run --passWithNoTests",
     "ts-node": "node -r esbuild-register"
   },
@@ -27,6 +51,7 @@
     "eslint-plugin-github": "^4.10.1",
     "eslint-plugin-import": "^2.29.1",
     "happy-dom": "12.10.3",
+    "microbundle": "0.15.1",
     "prettier": "^3.1.1",
     "rimraf": "^5.0.5",
     "typescript": "^5.3.3",
