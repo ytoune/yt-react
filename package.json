@@ -47,7 +47,8 @@
   "files": [
     "dist",
     "!dist/**/*.test.d.ts",
-    "!dist/debug.d.ts"
+    "!dist/debug.d.ts",
+    "jsx-runtime"
   ],
   "scripts": {
     "build": "rimraf dist && run-p -s \"build:*\"",
