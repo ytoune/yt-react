@@ -92,16 +92,17 @@ export const useRef = <V>(init: V): Ref<V> => {
   return (ctx.ref ||= { current: init })
 }
 
+const compareDeps = (deps: any[] | undefined, prev: any[] | undefined) => {
+  if (!deps || !prev) return false
+  if (deps.length !== prev.length) return false
+  return deps.every((d, i) => d === prev[i])
+}
+
 export const useEffect = (f: () => (() => void) | void, deps?: any[]): void => {
   const context = useInnerContext()
   const ctx = useInnerContextRef()
   context.effects.add(() => {
-    if (
-      !ctx.ref ||
-      !deps ||
-      ctx.ref[0].length !== deps.length ||
-      deps.some((d, i) => d !== ctx.ref[0][i])
-    ) {
+    if (!compareDeps(deps, ctx.ref?.[0])) {
       if (ctx.ref) {
         context.onCleanup.delete(ctx.ref[1])
         ctx.ref[1]()
