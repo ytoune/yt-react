@@ -47,11 +47,11 @@ export interface NodeInnerContext {
   onCleanup: Set<() => void>
   refs: { ref?: any }[]
 }
-const idxKey = ':yt-react:contextRefIdx'
-const ctxKey = ':yt-react:innerContext'
+const idxKey = ':yt-react:context-ref-idx'
+const ctxKey = ':yt-react:inner-context'
 const manager = (globalThis || window) as any as {
-  ':yt-react:contextRefIdx': 0
-  ':yt-react:innerContext': NodeInnerContext | null
+  ':yt-react:context-ref-idx': 0
+  ':yt-react:inner-context': NodeInnerContext | null
 }
 undefined === manager[idxKey] &&
   Object.defineProperty(manager, idxKey, {
