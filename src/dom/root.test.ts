@@ -92,15 +92,15 @@ describe('root', () => {
       }),
     )
     expect(count).toBe(2)
-    expect(document.body.innerHTML).toBe(
-      '<div class="piyo"><!--a.s-->c2<!--Child--><!--2--><!--i0-->c1<!--Child--><!--1--><!--i1--><!--a.e--><!--0--></div><!--root-->',
+    root.render(
+      jsx('div', {
+        class: 'piyo',
+        children: [[child(3), child(1), child(2)]],
+      }),
     )
-    root.render(jsx('div', { children: jsx('div', { children: 'pp' }) }))
     expect(document.body.innerHTML).toBe(
-      '<div><div>pp<!--0--></div><!--0--></div><!--root-->',
+      '<div class="piyo"><!--a.s-->c3<!--Child--><!--3--><!--i0-->c1<!--Child--><!--1--><!--i1-->c2<!--Child--><!--2--><!--i2--><!--a.e--><!--0--></div><!--root-->',
     )
-    root.render(jsx('div', { children: 'ok' }))
-    expect(document.body.innerHTML).toBe('<div>ok<!--0--></div><!--root-->')
   })
 
   it('should work with usePin', () => {
