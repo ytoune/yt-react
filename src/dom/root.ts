@@ -4,11 +4,19 @@ import { startAndSetInnerContext, endAndResetInnerContext } from '../hooks'
 import type { NodeInnerContext, Context } from '../hooks'
 import type { VNode, ComponentReturnType } from '../jsx-runtime/jsx'
 
-const initContext = (
-  pin: () => void,
-  parent: Element,
-  after: Comment,
-): Context => ({ pin, parent, after, prev: null })
+interface Runner {
+  add: (ctx: Context) => void
+}
+
+const createInitContext =
+  (runner: Runner) =>
+  (update: () => boolean, parent: Element, after: Comment): Context => {
+    const pin = () => {
+      runner.add(ctx)
+    }
+    const ctx = { pin, update, parent, after, prev: null } satisfies Context
+    return ctx
+  }
 
 const getText = (node: string | null): string | null => {
   switch (typeof node) {
@@ -23,191 +31,303 @@ const getText = (node: string | null): string | null => {
   return null
 }
 
+const isArray: (v: unknown) => v is readonly unknown[] = Array.isArray
+const hasKey = <T>(v: T): v is T & { readonly key: unknown } =>
+  undefined !== (v as any)?.key
+
+const validHasKeyItems = (v: readonly unknown[]) => {
+  const set = new Set()
+  for (const t of v)
+    if (hasKey(t)) {
+      if (set.has(t.key)) return false
+      set.add(t.key)
+    }
+  return true
+}
+
 export const createRootImpl =
-  (document: Document) => (rootElement: Element) => {
-    // eslint-disable-next-line complexity
-    const renderChildren = (ctx: Context, node: ComponentReturnType): void => {
-      if ('object' !== typeof node || !node) {
-        const text = getText(node)
-        const hash = JSON.stringify(text)
-        if ('lit' === ctx.prev?.type && hash === ctx.prev.hash) return
-        ctx.prev?.clean()
-        if (null === text) {
-          ctx.prev = null
-          return
-        }
-        const n = document.createTextNode(`${node}`)
-        const { parent, after } = ctx
-        const clean = () => parent.removeChild(n)
-        ctx.prev = { type: 'lit', clean, hash }
-        parent.insertBefore(n, after)
-        return
+  (document: Document, runner: Runner) => (rootElement: Element) => {
+    const renderNode = (ctx: Context, node: ComponentReturnType): boolean => {
+      if ('object' !== typeof node || !node) return renderPrimitive(ctx, node)
+      if (isArray(node)) return renderArray(ctx, node)
+      if ('string' === typeof node.type) return renderHTMLElement(ctx, node)
+      return renderComponent(ctx, node)
+    }
+    const renderPrimitive = (ctx: Context, node: string | null): boolean => {
+      const text = getText(node)
+      if ('prm' === ctx.prev?.type && text === ctx.prev.text) return false
+      ctx.prev?.clean()
+      if (null === text) {
+        ctx.prev = null
+        return true
       }
-      if ('string' === typeof node.type) {
-        const hash = node.type
-        let n: HTMLElement
-        let prevAttrs: { [k: string]: any } | undefined
-        let items: Context[]
-        if ('html' === ctx.prev?.type && hash === ctx.prev.tag) {
-          n = ctx.prev.element
-          prevAttrs = ctx.prev.attrs
-          items = ctx.prev.children
-        } else {
-          ctx.prev?.clean()
-          const { parent, after } = ctx
-          n = document.createElement(node.type)
-          parent.insertBefore(n, after)
-          items = []
-          const clean = () => {
-            for (const p of prev.children) {
-              p.prev?.clean()
-              n.removeChild(p.after)
-            }
-            parent.removeChild(n)
-          }
-          const prev = {
-            type: 'html',
-            clean,
-            tag: hash,
-            element: n,
-            attrs: node.props,
-            children: items,
-          } as const
-          ctx.prev = prev
-        }
-        const { children, ...rest } = node.props || {}
-        ctx.prev.attrs = rest
-        const nextItems =
-          null == children
-            ? []
-            : Array.isArray(children)
-              ? children
-              : [children]
-        if (nextItems.length < items.length)
-          for (const c of items.slice(nextItems.length)) {
-            c.prev?.clean()
-            n.removeChild(c.after)
-          }
-        const contexts = []
-        for (const [i, c] of nextItems.entries()) {
-          const ctx2 = (contexts[i] = (() => {
-            if (items[i]) return items[i]!
-            const pin = () => {
-              renderChildren(cx, cx.current)
-            }
-            const after = document.createComment(`${i}`)
-            n.appendChild(after)
-            const cx = initContext(pin, n, after)
-            return cx
-          })())
-          ctx2.current = c
-          ctx2.pin()
-        }
-        ctx.prev.children = contexts
-        const setAttribute = (k: string, v: any) => {
-          if (prevAttrs?.[k]) removeAttribute(k)
-          if ('function' === typeof v)
-            // @ts-expect-error: ignore
-            n[k.toLowerCase()] = v
-          else n.setAttribute(k, `${v as string}`)
-        }
-        const removeAttribute = (k: string) => {
-          const p = prevAttrs?.[k]
-          if ('function' === typeof p)
-            // @ts-expect-error: ignore
-            n[k.toLowerCase()] = undefined
-          else n.removeAttribute(k)
-        }
-        for (const [k, v] of Object.entries(rest)) {
-          if (prevAttrs?.[k] === v) continue
-          if (v || 0 === v) setAttribute(k, v)
-          else removeAttribute(k)
-        }
-        if (prevAttrs)
-          for (const k in prevAttrs) if (!(k in rest)) removeAttribute(k)
-        return
+      const n = document.createTextNode(`${node}`)
+      const { parent, after } = ctx
+      const clean = () => parent.removeChild(n)
+      ctx.prev = { type: 'prm', clean, text }
+      parent.insertBefore(n, after)
+      return true
+    }
+    const renderArray = (ctx: Context, node: readonly unknown[]): boolean => {
+      let updated = false
+      if ('ary' === ctx.prev?.type) {
+        // ok
       } else {
-        const hash = JSON.stringify(
-          Object.entries(node.props).sort((q, w) => q[0].localeCompare(w[0])),
-        )
-        let prevHash: string | null
-        let ctx2: Context
-        let start2: Comment
-        let after2: Comment
-        const { type, key, props } = node
-        if (
-          'node' === ctx.prev?.type &&
-          type === ctx.prev.is.type &&
-          key === ctx.prev.is.key
-        ) {
-          prevHash = ctx.prev.propHash
-          start2 = ctx.prev.mark[0]
-          after2 = ctx.prev.mark[1]
-          ctx2 = ctx.prev.ctx
-        } else {
-          ctx.prev?.clean()
-          prevHash = null
-          const { parent, after } = ctx
-          start2 = document.createComment(`${type.name}:s`)
-          parent.insertBefore(start2, after)
-          after2 = document.createComment(`${type.name}:e`)
-          parent.insertBefore(after2, after)
-          const clean = () => {
-            for (const f of nodeInnerCtx.onCleanup) f()
-            ctx2.prev?.clean()
-            parent.removeChild(start2)
-            parent.removeChild(after2)
+        ctx.prev?.clean()
+        updated = true
+        const { parent, after } = ctx
+        const clean = () => {
+          for (const [p, m] of prev.items) {
+            p.prev?.clean()
+            parent.removeChild(p.after)
+            parent.removeChild(m)
           }
-          const pin = () => {
-            let ret: ComponentReturnType
-            try {
-              startAndSetInnerContext(nodeInnerCtx)
-              ret = type(props)
-            } finally {
-              endAndResetInnerContext()
-            }
-            if (ret) {
-              renderChildren(ctx2, ret)
-              for (const f of effects) {
-                f()
-                effects.delete(f)
-              }
-              return
-            }
-            ctx2.prev?.clean()
-          }
-          ctx2 = initContext(pin, parent, after2)
-          const effects = new Set<() => void>()
-          const nodeInnerCtx: NodeInnerContext = {
-            pin,
-            effects,
-            onCleanup: new Set(),
-            refs: [],
-          }
-          ctx.prev = {
-            type: 'node',
-            clean,
-            is: node,
-            propHash: hash,
-            mark: [start2, after2],
-            ctx: ctx2,
-            nodeInnerCtx,
-          }
+          const [start, end] = prev.mark
+          parent.removeChild(start)
+          parent.removeChild(end)
         }
-        if (prevHash === hash) return
-        return ctx2.pin()
+        const start = document.createComment('a.s')
+        parent.insertBefore(start, after)
+        const end = document.createComment('a.e')
+        parent.insertBefore(end, after)
+        const prev = {
+          type: 'ary',
+          clean,
+          items: [] as [Context, Comment][],
+          mark: [start, end],
+        } satisfies Context['prev']
+        ctx.prev = prev
       }
+      const { parent } = ctx
+      const [start, after] = ctx.prev.mark
+      const prevItems = ctx.prev.items
+      const nextItems: (readonly [Context, Comment])[] = []
+      const isValid = validHasKeyItems(node)
+      const needKeys = new Set(node.filter(hasKey).map(v => v.key))
+      const map = new Map<any, [Context, Node[]]>()
+      for (const [i, [v, a]] of prevItems.entries())
+        if (hasKey(v.prev) && needKeys.has(v.prev.key)) {
+          const s = prevItems[i - 1]?.[1] ?? start
+          const nodes: Node[] = []
+          for (let t: Node | null = s; (t = t.nextSibling) && t !== a; )
+            nodes.push(t)
+          map.set(v.prev.key, [v, nodes])
+        } else {
+          v.prev?.clean()
+          parent.removeChild(v.after)
+          updated = true
+        }
+      for (const [i, c] of node.entries()) {
+        const key = isValid && hasKey(c) ? c.key : undefined
+        let mk2 = prevItems[i]?.[1]
+        if (!mk2) {
+          mk2 = document.createComment(`i${i}`)
+          parent.insertBefore(mk2, after)
+        }
+        const [ctx2, nodes] = (() => {
+          if (map.has(key)) return map.get(key)!
+          updated = true
+          const update = () => renderNode(ctx2, ctx2.current)
+          const af2 = document.createComment(`${(key as string) ?? '?'}`)
+          parent.insertBefore(af2, mk2)
+          const ctx2 = initContext(update, parent, af2)
+          return [ctx2, null] as const
+        })()
+        const orderChanged =
+          undefined !== key && prevItems[i]?.[0]?.current?.key !== key
+        if (orderChanged && nodes)
+          for (const n of nodes) parent.insertBefore(n, mk2)
+        ctx2.current = c
+        updated = ctx2.update() || updated || orderChanged
+        nextItems.push([ctx2, mk2])
+      }
+      if (nextItems.length < prevItems.length)
+        for (const [, m] of prevItems.slice(nextItems.length))
+          parent.removeChild(m)
+      ctx.prev.items = nextItems
+      return updated
     }
-    const rerenderRoot = () => {
-      if (prev) renderChildren(rootCtx, prev)
+    const renderHTMLElement = (
+      ctx: Context,
+      node: VNode<any> & { type: string },
+    ): boolean => {
+      let updated = false
+      const hash = node.type
+      let n: HTMLElement
+      let prevAttrs: { [k: string]: any } | undefined
+      let items: readonly Context[]
+      const { children, key, ...rest } = node.props || {}
+      if (
+        'elm' === ctx.prev?.type &&
+        hash === ctx.prev.tag &&
+        key === ctx.prev.key
+      ) {
+        n = ctx.prev.element
+        prevAttrs = ctx.prev.attrs
+        items = ctx.prev.children
+      } else {
+        ctx.prev?.clean()
+        updated = true
+        const { parent, after } = ctx
+        n = document.createElement(node.type)
+        parent.insertBefore(n, after)
+        items = []
+        const clean = () => {
+          for (const p of prev.children) {
+            p.prev?.clean()
+            n.removeChild(p.after)
+          }
+          parent.removeChild(n)
+        }
+        const prev = {
+          type: 'elm',
+          clean,
+          key,
+          tag: hash,
+          element: n,
+          attrs: node.props,
+          children: items,
+        } satisfies Context['prev']
+        ctx.prev = prev
+      }
+      ctx.prev.attrs = rest
+      const nextItems =
+        null == children ? [] : Array.isArray(children) ? children : [children]
+      if (nextItems.length < items.length) {
+        for (const c of items.slice(nextItems.length)) {
+          c.prev?.clean()
+          n.removeChild(c.after)
+        }
+        updated = true
+      }
+      const contexts = []
+      for (const [i, c] of nextItems.entries()) {
+        const ctx2 = (contexts[i] = (() => {
+          if (items[i]) return items[i]!
+          const update = () => renderNode(cx, cx.current)
+          const after = document.createComment(`${i}`)
+          n.appendChild(after)
+          const cx = initContext(update, n, after)
+          return cx
+        })())
+        ctx2.current = c
+        updated = ctx2.update() || updated
+      }
+      ctx.prev.children = contexts
+      const setAttribute = (k: string, v: any) => {
+        updated = true
+        if (prevAttrs?.[k]) removeAttribute(k)
+        if ('function' === typeof v)
+          // @ts-expect-error: ignore
+          n[k.toLowerCase()] = v
+        else n.setAttribute(k, `${v as string}`)
+      }
+      const removeAttribute = (k: string) => {
+        updated = true
+        const p = prevAttrs?.[k]
+        if ('function' === typeof p)
+          // @ts-expect-error: ignore
+          n[k.toLowerCase()] = undefined
+        else n.removeAttribute(k)
+      }
+      for (const [k, v] of Object.entries(rest)) {
+        if (prevAttrs?.[k] === v) continue
+        if (v || 0 === v) setAttribute(k, v)
+        else removeAttribute(k)
+      }
+      if (prevAttrs)
+        for (const k in prevAttrs) if (!(k in rest)) removeAttribute(k)
+      return updated
     }
+    const renderComponent = (
+      ctx: Context,
+      node: VNode<any> & { type: (p: any) => ComponentReturnType },
+    ): boolean => {
+      let updated = false
+      const hash = Object.entries(node.props)
+        .filter(q => undefined !== q[1])
+        .sort((q, w) => (q[0] === w[0] ? 0 : q[0] < w[0] ? -1 : 1))
+      let prevHash: readonly (readonly [string, any])[] | null
+      let ctx2: Context
+      const { type: comp, key, props } = node
+      if (
+        'cmp' === ctx.prev?.type &&
+        comp === ctx.prev.comp &&
+        key === ctx.prev.key
+      ) {
+        prevHash = ctx.prev.propHash
+        ctx2 = ctx.prev.ctx
+        ctx.prev.props = props
+        ctx.prev.propHash = hash
+      } else {
+        ctx.prev?.clean()
+        updated = true
+        prevHash = null
+        const { parent, after } = ctx
+        const after2 = document.createComment(`${comp.name}`)
+        parent.insertBefore(after2, after)
+        const clean = () => {
+          for (const f of nodeInnerCtx.onCleanup) f()
+          ctx2.prev?.clean()
+          parent.removeChild(after2)
+        }
+        const update = (): boolean => {
+          let ret: ComponentReturnType
+          try {
+            startAndSetInnerContext(nodeInnerCtx)
+            ret = comp(prev.props)
+          } finally {
+            endAndResetInnerContext()
+          }
+          if (ret) {
+            const r = renderNode(ctx2, ret)
+            for (const f of effects) {
+              f()
+              effects.delete(f)
+            }
+            return r
+          }
+          if (ctx2.prev) {
+            ctx2.prev?.clean()
+            return true
+          }
+          return false
+        }
+        ctx2 = initContext(update, parent, after2)
+        const effects = new Set<() => void>()
+        const nodeInnerCtx: NodeInnerContext = {
+          pin: update,
+          effects,
+          onCleanup: new Set(),
+          refs: [],
+        }
+        const prev = {
+          type: 'cmp',
+          clean,
+          comp,
+          key,
+          props,
+          propHash: hash,
+          ctx: ctx2,
+          nodeInnerCtx,
+        } satisfies Context['prev']
+        ctx.prev = prev
+      }
+      const needsUpdate =
+        !prevHash ||
+        prevHash.length !== hash.length ||
+        prevHash.some(([k, v], i) => k !== hash[i]![0] || v !== hash[i]![1])
+      return (needsUpdate && ctx2.update()) || updated
+    }
+    const rerenderRoot = () => (prev ? renderNode(rootCtx, prev) : false)
+    const initContext = createInitContext(runner)
     rootElement.innerHTML = ''
     const after = document.createComment('root')
     rootElement.appendChild(after)
     const rootCtx = initContext(rerenderRoot, rootElement, after)
     let prev: VNode<any> | null = null
     const render = (node: VNode<any>) => {
-      renderChildren(rootCtx, (prev = node))
+      renderNode(rootCtx, (prev = node))
     }
     const unmount = () => {
       rootCtx.prev?.clean()
@@ -216,9 +336,24 @@ export const createRootImpl =
     return { render, unmount }
   }
 
+const defaultRunner = (): Runner => {
+  const needsUpdatingContexts = new Set<Context>()
+  const runner = {
+    add: (ctx: Context) => {
+      needsUpdatingContexts.size ||
+        setTimeout(() => {
+          for (const ctx of needsUpdatingContexts) ctx.update()
+          needsUpdatingContexts.clear()
+        })
+      needsUpdatingContexts.add(ctx)
+    },
+  } satisfies Runner
+  return runner
+}
+
 export const createRoot =
   'undefined' !== typeof document
-    ? createRootImpl(document)
+    ? createRootImpl(document, defaultRunner())
     : () => {
         throw new Error('no document')
       }

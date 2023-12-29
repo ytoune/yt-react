@@ -21,16 +21,27 @@ export namespace JSX {
           : never
       }[keyof IntrinsicElements]
     | ComponentType<P>
-  export interface Element extends VNode<any> {}
+  export type Element = VNode<any>
 }
 
-export type VNode<P> = {
-  type: ComponentType<P>
-  props: P
-  key?: string
-}
-export type ComponentReturnType = null | string | VNode<any>
-type ComponentType<P> =
+export type VNode<P> =
+  | {
+      type: keyof JSX.IntrinsicElements
+      props: JSX.IntrinsicElements[keyof JSX.IntrinsicElements]
+      key?: string
+    }
+  | {
+      type: (p: P) => ComponentReturnType
+      props: P
+      key?: string
+    }
+export type ComponentReturnType =
+  | null
+  | string
+  | VNode<any>
+  | readonly ComponentReturnType[]
+
+export type ComponentType<P> =
   | keyof JSX.IntrinsicElements
   | ((p: P) => ComponentReturnType)
 

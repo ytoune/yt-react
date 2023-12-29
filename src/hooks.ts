@@ -1,28 +1,41 @@
-import type { VNode } from './jsx-runtime/jsx'
+import type { ComponentType } from './jsx-runtime/jsx'
 
 type Prev =
   | null
-  | { type: 'lit'; clean: () => void; hash: string }
   | {
-      type: 'html'
-      clean: () => void
-      tag: string
-      element: HTMLElement
-      attrs: { [k: string]: any }
-      children: Context[]
+      readonly type: 'prm'
+      readonly clean: () => void
+      readonly text: string | null
     }
   | {
-      type: 'node'
-      clean: () => void
-      is: VNode<any>
-      propHash: string
-      mark: [start: Comment, after: Comment]
-      ctx: Context
-      nodeInnerCtx: NodeInnerContext
+      readonly type: 'ary'
+      readonly clean: () => void
+      items: readonly (readonly [Context, Comment])[]
+      readonly mark: [start: Comment, after: Comment]
+    }
+  | {
+      readonly type: 'elm'
+      readonly clean: () => void
+      readonly tag: string
+      readonly key: any
+      readonly element: HTMLElement
+      attrs: { [k: string]: any }
+      children: readonly Context[]
+    }
+  | {
+      readonly type: 'cmp'
+      readonly clean: () => void
+      readonly comp: ComponentType<any>
+      readonly key: string | undefined
+      props: any
+      propHash: readonly (readonly [string, any])[]
+      readonly ctx: Context
+      readonly nodeInnerCtx: NodeInnerContext
     }
 
 export interface Context {
   pin: () => void
+  update: () => boolean
   prev: Prev
   current?: any
   parent: Element
