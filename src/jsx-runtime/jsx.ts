@@ -81,12 +81,4 @@ export const jsx = <P>(
   key,
 })
 
-export const jsxs = <P>(
-  type: ComponentType<P>,
-  props: P,
-  key?: string,
-): VNode<P> => ({
-  type,
-  props,
-  key,
-})
+export const jsxs = jsx
