@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { Window } from 'happy-dom'
 import { jsx } from '../jsx-runtime/jsx'
 import type { Context } from '../hooks'
-import { useEffect, useMemo, usePin, useState } from '../hooks'
+import { useEffect, useMemo, usePin, useReducer, useState } from '../hooks'
 import { createRootImpl } from './root'
 
 const createDocument = () => {
@@ -272,5 +272,24 @@ describe('root', () => {
     pin()
     expect(document.body.innerHTML).toBe('2<!--App--><!--root-->')
     expect(count).toBe(2)
+  })
+
+  it('should work with useReducer', () => {
+    const { root, document } = createRoot()
+
+    let dispatch: (a: number) => void = needSet
+    let count = 0
+    const App = () => {
+      const [state, d] = useReducer((s: number, a: number) => s + a, 0)
+      dispatch = d
+      count += 1
+      return `${state},${count}`
+    }
+    root.render(jsx(App, {}))
+    expect(document.body.innerHTML).toBe('0,1<!--App--><!--root-->')
+    dispatch(2)
+    expect(document.body.innerHTML).toBe('2,2<!--App--><!--root-->')
+    dispatch(3)
+    expect(document.body.innerHTML).toBe('5,3<!--App--><!--root-->')
   })
 })

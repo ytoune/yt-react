@@ -124,7 +124,7 @@ export const useState = <V>(init: V): [V, (v: V | ((p: V) => V)) => void] => {
       ctx2.ref[0] = 'function' === typeof v ? (v as any)(prev) : v
       if (prev !== ctx2.ref[0]) ctx.pin()
     },
-  ])
+  ]).slice(0, 2)
 }
 
 export const useMemo = <V>(f: () => V, deps: any[]): V => {
@@ -132,3 +132,22 @@ export const useMemo = <V>(f: () => V, deps: any[]): V => {
   if (!compareDeps(deps, ctx.ref?.[0])) ctx.ref = [deps, f()]
   return ctx.ref[1]
 }
+
+export const useReducer: <S, A, I = unknown>(
+  reducer: (s: S, a: A) => S,
+  ...args: [initialState: S] | [initialState: I, init: (i: I) => S]
+) => [S, (a: A) => void] = ((reducer: any, initialState: any, init: any) => {
+  const ctx = useInnerContext()
+  const ctx2 = useInnerContextRef()
+  const ref = (ctx2.ref ||= [
+    init ? init(initialState as any) : initialState,
+    (a: any) => {
+      const prev = ctx2.ref[0]
+      ctx2.ref[0] = ctx2.ref[2](prev, a)
+      if (prev !== ctx2.ref[0]) ctx.pin()
+    },
+    reducer,
+  ])
+  ctx2.ref[2] = reducer
+  return ref.slice(0, 2)
+}) as any
