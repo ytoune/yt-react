@@ -292,4 +292,27 @@ describe('root', () => {
     dispatch(3)
     expect(document.body.innerHTML).toBe('5,3<!--App--><!--root-->')
   })
+
+  it('should work with useReducer with init', () => {
+    const { root, document } = createRoot()
+
+    let dispatch: (a: number) => void = needSet
+    let count = 0
+    const App = () => {
+      const [state, d] = useReducer(
+        (s: number, a: number) => s + a,
+        0,
+        (i: number) => i + 1,
+      )
+      dispatch = d
+      count += 1
+      return `${state},${count}`
+    }
+    root.render(jsx(App, {}))
+    expect(document.body.innerHTML).toBe('1,1<!--App--><!--root-->')
+    dispatch(2)
+    expect(document.body.innerHTML).toBe('3,2<!--App--><!--root-->')
+    dispatch(3)
+    expect(document.body.innerHTML).toBe('6,3<!--App--><!--root-->')
+  })
 })
