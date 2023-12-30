@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { Window } from 'happy-dom'
 import { jsx } from '../jsx-runtime/jsx'
 import type { Context } from '../hooks'
-import { useEffect, usePin, useState } from '../hooks'
+import { useEffect, useMemo, usePin, useState } from '../hooks'
 import { createRootImpl } from './root'
 
 const createDocument = () => {
@@ -246,5 +246,31 @@ describe('root', () => {
     expect(document.body.innerHTML).toBe(
       '<div>4<!--0--></div><!--App5--><!--root-->',
     )
+  })
+
+  it('should work with useMemo', () => {
+    const { root, document } = createRoot()
+
+    let pin: () => void = needSet
+    let num = 0
+    let count = 0
+    const App = () => {
+      pin = usePin()
+      const c = useMemo(() => {
+        count += 1
+        return count
+      }, [num])
+      return `${c}`
+    }
+    root.render(jsx(App, {}))
+    expect(document.body.innerHTML).toBe('1<!--App--><!--root-->')
+    expect(count).toBe(1)
+    pin()
+    expect(document.body.innerHTML).toBe('1<!--App--><!--root-->')
+    expect(count).toBe(1)
+    num = 1
+    pin()
+    expect(document.body.innerHTML).toBe('2<!--App--><!--root-->')
+    expect(count).toBe(2)
   })
 })

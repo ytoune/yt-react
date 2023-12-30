@@ -126,3 +126,9 @@ export const useState = <V>(init: V): [V, (v: V | ((p: V) => V)) => void] => {
     },
   ])
 }
+
+export const useMemo = <V>(f: () => V, deps: any[]): V => {
+  const ctx = useInnerContextRef()
+  if (!compareDeps(deps, ctx.ref?.[0])) ctx.ref = [deps, f()]
+  return ctx.ref[1]
+}
