@@ -1,6 +1,6 @@
 {
   "name": "@ytoune/yt-react",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "reimplementing react as an exercise",
   "author": {
     "name": "ytoune"
