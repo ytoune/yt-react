@@ -1,4 +1,4 @@
-import type { ComponentType } from './jsx-runtime/jsx'
+import type { ComponentType, ComponentReturnType } from './jsx-runtime/jsx'
 
 type Prev =
   | null
@@ -10,7 +10,7 @@ type Prev =
   | {
       readonly type: 'ary'
       readonly clean: () => void
-      items: readonly (readonly [Context, Comment])[]
+      items: readonly (readonly [NodeContext, Comment])[]
       readonly mark: [start: Comment, after: Comment]
     }
   | {
@@ -20,7 +20,7 @@ type Prev =
       readonly key: any
       readonly element: HTMLElement
       attrs: { [k: string]: any }
-      children: readonly Context[]
+      children: readonly NodeContext[]
     }
   | {
       readonly type: 'cmp'
@@ -29,23 +29,33 @@ type Prev =
       readonly key: string | undefined
       props: any
       propHash: readonly (readonly [string, any])[]
-      readonly ctx: Context
+      readonly ctx: NodeContext
       readonly nodeInnerCtx: NodeInnerContext
     }
 
-export interface Context {
+export interface NodeContext {
   pin: () => void
   update: () => boolean
   prev: Prev
   current?: any
   parent: Element
   after: Comment
+  provided: Provided
 }
 export interface NodeInnerContext {
   pin: () => void
   effects: Set<() => void>
   onCleanup: Set<() => void>
   refs: { ref?: any }[]
+  provided: Provided
+}
+export interface Provided {
+  parent: Provided | null
+  map?: Map<Context<any>, any>
+}
+export interface Context<T> {
+  readonly value: T
+  Provider: (props: { value: T; children: any }) => ComponentReturnType
 }
 const idxKey = ':yt-react:context-ref-idx'
 const ctxKey = ':yt-react:inner-context'
@@ -151,3 +161,20 @@ export const useReducer: <S, A, I = unknown>(
   ctx2.ref[2] = reducer
   return ref.slice(0, 2)
 }) as any
+
+export const createContext = <T>(init: T): Context<T> => {
+  const Provider = (props: { value: T; children: any }) => {
+    const map = (useInnerContext().provided.map ||= new Map())
+    map.set(ctx, props.value)
+    return props.children
+  }
+  const ctx: Context<T> = { Provider, value: init }
+  return ctx
+}
+
+export const useContext = <T>(ctx: Context<T>): T => {
+  const { provided } = useInnerContext()
+  for (let tmp: Provided | null = provided; tmp; tmp = tmp.parent)
+    if (tmp.map?.has(ctx)) return tmp.map.get(ctx)!
+  return ctx.value
+}

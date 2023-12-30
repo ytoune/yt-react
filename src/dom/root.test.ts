@@ -1,8 +1,16 @@
 import { describe, it, expect } from 'vitest'
 import { Window } from 'happy-dom'
 import { jsx } from '../jsx-runtime/jsx'
-import type { Context } from '../hooks'
-import { useEffect, useMemo, usePin, useReducer, useState } from '../hooks'
+import type { NodeContext } from '../hooks'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  usePin,
+  useReducer,
+  useState,
+} from '../hooks'
 import { createRootImpl } from './root'
 
 const createDocument = () => {
@@ -22,7 +30,7 @@ const createDocument = () => {
 const createRoot = () => {
   const { document } = createDocument()
   const runner = {
-    add: (ctx: Context) => {
+    add: (ctx: NodeContext) => {
       ctx.update()
     },
   }
@@ -314,5 +322,27 @@ describe('root', () => {
     expect(document.body.innerHTML).toBe('3,2<!--App--><!--root-->')
     dispatch(3)
     expect(document.body.innerHTML).toBe('6,3<!--App--><!--root-->')
+  })
+
+  it('should work with context', () => {
+    const { root, document } = createRoot()
+
+    const ctx = createContext('global')
+    const Parent = () =>
+      jsx(ctx.Provider, {
+        value: 'parent',
+        children: jsx(Child, {}),
+      })
+    const Child = () => {
+      const v = useContext(ctx)
+      return `${v}`
+    }
+    const App = () =>
+      jsx('div', { children: [jsx(Parent, {}), jsx(Child, {})] })
+    root.render(jsx(App, {}))
+
+    expect(document.body.innerHTML).toBe(
+      '<div>parent<!--Child--><!--Provider--><!--Parent--><!--0-->global<!--Child--><!--1--></div><!--App--><!--root-->',
+    )
   })
 })

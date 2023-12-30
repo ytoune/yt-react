@@ -1,20 +1,32 @@
 /// <reference lib="dom" />
 
 import { startAndSetInnerContext, endAndResetInnerContext } from '../hooks'
-import type { NodeInnerContext, Context } from '../hooks'
+import type { NodeInnerContext, NodeContext, Provided } from '../hooks'
 import type { VNode, ComponentReturnType } from '../jsx-runtime/jsx'
 
 interface Runner {
-  add: (ctx: Context) => void
+  add: (ctx: NodeContext) => void
 }
 
 const createInitContext =
   (runner: Runner) =>
-  (update: () => boolean, parent: Element, after: Comment): Context => {
+  (
+    update: () => boolean,
+    parent: Element,
+    after: Comment,
+    provided: Provided,
+  ): NodeContext => {
     const pin = () => {
       runner.add(ctx)
     }
-    const ctx = { pin, update, parent, after, prev: null } satisfies Context
+    const ctx = {
+      pin,
+      update,
+      parent,
+      after,
+      prev: null,
+      provided,
+    } satisfies NodeContext
     return ctx
   }
 
@@ -47,13 +59,19 @@ const validHasKeyItems = (v: readonly unknown[]) => {
 
 export const createRootImpl =
   (document: Document, runner: Runner) => (rootElement: Element) => {
-    const renderNode = (ctx: Context, node: ComponentReturnType): boolean => {
+    const renderNode = (
+      ctx: NodeContext,
+      node: ComponentReturnType,
+    ): boolean => {
       if ('object' !== typeof node || !node) return renderPrimitive(ctx, node)
       if (isArray(node)) return renderArray(ctx, node)
       if ('string' === typeof node.type) return renderHTMLElement(ctx, node)
       return renderComponent(ctx, node)
     }
-    const renderPrimitive = (ctx: Context, node: string | null): boolean => {
+    const renderPrimitive = (
+      ctx: NodeContext,
+      node: string | null,
+    ): boolean => {
       const text = getText(node)
       if ('prm' === ctx.prev?.type && text === ctx.prev.text) return false
       ctx.prev?.clean()
@@ -68,7 +86,10 @@ export const createRootImpl =
       parent.insertBefore(n, after)
       return true
     }
-    const renderArray = (ctx: Context, node: readonly unknown[]): boolean => {
+    const renderArray = (
+      ctx: NodeContext,
+      node: readonly unknown[],
+    ): boolean => {
       let updated = false
       if ('ary' === ctx.prev?.type) {
         // ok
@@ -93,18 +114,18 @@ export const createRootImpl =
         const prev = {
           type: 'ary',
           clean,
-          items: [] as [Context, Comment][],
+          items: [] as [NodeContext, Comment][],
           mark: [start, end],
-        } satisfies Context['prev']
+        } satisfies NodeContext['prev']
         ctx.prev = prev
       }
       const { parent } = ctx
       const [start, after] = ctx.prev.mark
       const prevItems = ctx.prev.items
-      const nextItems: (readonly [Context, Comment])[] = []
+      const nextItems: (readonly [NodeContext, Comment])[] = []
       const isValid = validHasKeyItems(node)
       const needKeys = new Set(node.filter(hasKey).map(v => v.key))
-      const map = new Map<any, [Context, Node[]]>()
+      const map = new Map<any, [NodeContext, Node[]]>()
       for (const [i, [v, a]] of prevItems.entries())
         if (hasKey(v.prev) && needKeys.has(v.prev.key)) {
           const s = prevItems[i - 1]?.[1] ?? start
@@ -130,7 +151,7 @@ export const createRootImpl =
           const update = () => renderNode(ctx2, ctx2.current)
           const af2 = document.createComment(`${(key as string) ?? '?'}`)
           parent.insertBefore(af2, mk2)
-          const ctx2 = initContext(update, parent, af2)
+          const ctx2 = initContext(update, parent, af2, ctx.provided)
           return [ctx2, null] as const
         })()
         const orderChanged =
@@ -148,14 +169,14 @@ export const createRootImpl =
       return updated
     }
     const renderHTMLElement = (
-      ctx: Context,
+      ctx: NodeContext,
       node: VNode<any> & { type: string },
     ): boolean => {
       let updated = false
       const hash = node.type
       let n: HTMLElement
       let prevAttrs: { [k: string]: any } | undefined
-      let items: readonly Context[]
+      let items: readonly NodeContext[]
       const { children, key, ...rest } = node.props || {}
       if (
         'elm' === ctx.prev?.type &&
@@ -187,7 +208,7 @@ export const createRootImpl =
           element: n,
           attrs: node.props,
           children: items,
-        } satisfies Context['prev']
+        } satisfies NodeContext['prev']
         ctx.prev = prev
       }
       ctx.prev.attrs = rest
@@ -207,7 +228,7 @@ export const createRootImpl =
           const update = () => renderNode(cx, cx.current)
           const after = document.createComment(`${i}`)
           n.appendChild(after)
-          const cx = initContext(update, n, after)
+          const cx = initContext(update, n, after, ctx.provided)
           return cx
         })())
         ctx2.current = c
@@ -240,7 +261,7 @@ export const createRootImpl =
       return updated
     }
     const renderComponent = (
-      ctx: Context,
+      ctx: NodeContext,
       node: VNode<any> & { type: (p: any) => ComponentReturnType },
     ): boolean => {
       let updated = false
@@ -248,7 +269,7 @@ export const createRootImpl =
         .filter(q => undefined !== q[1])
         .sort((q, w) => (q[0] === w[0] ? 0 : q[0] < w[0] ? -1 : 1))
       let prevHash: readonly (readonly [string, any])[] | null
-      let ctx2: Context
+      let ctx2: NodeContext
       const { type: comp, key, props } = node
       if (
         'cmp' === ctx.prev?.type &&
@@ -293,13 +314,17 @@ export const createRootImpl =
           }
           return false
         }
-        ctx2 = initContext(update, parent, after2)
+        const provided: Provided = {
+          parent: ctx.provided,
+        }
+        ctx2 = initContext(update, parent, after2, provided)
         const effects = new Set<() => void>()
         const nodeInnerCtx: NodeInnerContext = {
           pin: update,
           effects,
           onCleanup: new Set(),
           refs: [],
+          provided,
         }
         const prev = {
           type: 'cmp',
@@ -310,7 +335,7 @@ export const createRootImpl =
           propHash: hash,
           ctx: ctx2,
           nodeInnerCtx,
-        } satisfies Context['prev']
+        } satisfies NodeContext['prev']
         ctx.prev = prev
       }
       const needsUpdate =
@@ -324,7 +349,15 @@ export const createRootImpl =
     rootElement.innerHTML = ''
     const after = document.createComment('root')
     rootElement.appendChild(after)
-    const rootCtx = initContext(rerenderRoot, rootElement, after)
+    const globalProvided: Provided = {
+      parent: null,
+    }
+    const rootCtx = initContext(
+      rerenderRoot,
+      rootElement,
+      after,
+      globalProvided,
+    )
     let prev: VNode<any> | null = null
     const render = (node: VNode<any>) => {
       renderNode(rootCtx, (prev = node))
@@ -337,9 +370,9 @@ export const createRootImpl =
   }
 
 const defaultRunner = (): Runner => {
-  const needsUpdatingContexts = new Set<Context>()
+  const needsUpdatingContexts = new Set<NodeContext>()
   const runner = {
-    add: (ctx: Context) => {
+    add: (ctx: NodeContext) => {
       needsUpdatingContexts.size ||
         setTimeout(() => {
           for (const ctx of needsUpdatingContexts) ctx.update()
