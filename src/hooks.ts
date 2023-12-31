@@ -1,5 +1,6 @@
 import type { ComponentType, ComponentReturnType } from './jsx-runtime/jsx'
 
+/** @internal */
 type Prev =
   | null
   | {
@@ -33,6 +34,7 @@ type Prev =
       readonly nodeInnerCtx: NodeInnerContext
     }
 
+/** @internal */
 export interface NodeContext {
   pin: () => void
   update: () => boolean
@@ -42,6 +44,8 @@ export interface NodeContext {
   after: Comment
   provided: Provided
 }
+
+/** @internal */
 export interface NodeInnerContext {
   pin: () => void
   effects: Set<() => void>
@@ -88,10 +92,13 @@ const useInnerContextRef = () =>
 
 export const usePin = () => useInnerContext().pin
 
+/** @internal */
 export const startAndSetInnerContext = (ctx: NodeInnerContext) => {
   manager[idxKey] = 0
   manager[ctxKey] = ctx
 }
+
+/** @internal */
 export const endAndResetInnerContext = () => {
   manager[ctxKey] = null
 }

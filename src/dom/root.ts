@@ -4,8 +4,11 @@ import { startAndSetInnerContext, endAndResetInnerContext } from '../hooks'
 import type { NodeInnerContext, NodeContext, Provided } from '../hooks'
 import type { VNode, ComponentReturnType } from '../jsx-runtime/jsx'
 
+interface InnerNode {
+  update: () => boolean
+}
 interface Runner {
-  add: (ctx: NodeContext) => void
+  add: (ctx: InnerNode) => void
 }
 
 const createInitContext =
@@ -206,7 +209,7 @@ export const createRootImpl =
           key,
           tag: hash,
           element: n,
-          attrs: node.props,
+          attrs: rest,
           children: items,
         } satisfies NodeContext['prev']
         ctx.prev = prev
@@ -370,15 +373,15 @@ export const createRootImpl =
   }
 
 const defaultRunner = (): Runner => {
-  const needsUpdatingContexts = new Set<NodeContext>()
+  const needsUpdating = new Set<InnerNode>()
   const runner = {
-    add: (ctx: NodeContext) => {
-      needsUpdatingContexts.size ||
+    add: (ctx: InnerNode) => {
+      needsUpdating.size ||
         setTimeout(() => {
-          for (const ctx of needsUpdatingContexts) ctx.update()
-          needsUpdatingContexts.clear()
+          for (const ctx of needsUpdating) ctx.update()
+          needsUpdating.clear()
         })
-      needsUpdatingContexts.add(ctx)
+      needsUpdating.add(ctx)
     },
   } satisfies Runner
   return runner
