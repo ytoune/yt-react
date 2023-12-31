@@ -1,5 +1,7 @@
 # yt-react
 
+[![npm version](https://badge.fury.io/js/@ytoune%2Fyt-react.svg)](https://badge.fury.io/js/@ytoune%2Fyt-react)
+
 reimplementing react as an exercise
 
 ## todo
@@ -16,4 +18,4 @@ reimplementing react as an exercise
 - [x] createContext, useContext
 - [x] array children, key prop
 - [x] ref prop
-- [ ] useCallBack
+- [x] useCallBack
