@@ -57,7 +57,7 @@
     "build:dom": "microbundle -i src/dom/index.ts -o dist/dom/index.js",
     "build:hyperscript": "microbundle -i src/hyperscript.ts -o dist/hyperscript.js",
     "build:hooks": "microbundle -i src/hooks.ts -o dist/hooks.js",
-    "test": "eslint '**/*.{ts,tsx}' && tsc --noEmit && vitest run --passWithNoTests",
+    "test": "eslint && tsc --noEmit && vitest run --passWithNoTests",
     "ts-node": "node -r esbuild-register"
   },
   "dependencies": {},
