@@ -8,6 +8,7 @@ import {
   useMemo,
   usePin,
   useReducer,
+  useRef,
   useState,
 } from '../hooks'
 import { createRootImpl } from './root'
@@ -343,5 +344,65 @@ describe('root', () => {
     expect(document.body.innerHTML).toBe(
       '<div>parent<!--Child--><!--Provider--><!--Parent--><!--0-->global<!--Child--><!--1--></div><!--App--><!--root-->',
     )
+  })
+
+  it('should work with ref', () => {
+    const { root, document } = createRoot()
+
+    let ref: { current: null | HTMLDivElement } = { current: null }
+    const App = () => {
+      ref = useRef<HTMLDivElement | null>(null)
+      return jsx('div', { ref })
+    }
+    root.render(jsx(App, {}))
+    expect(document.body.innerHTML).toBe('<div></div><!--App--><!--root-->')
+    expect(ref.current).toBe(document.body.firstChild)
+    expect(ref.current?.tagName).toBe('DIV')
+
+    let count = 0
+    let pin: () => void = needSet
+    ref = {
+      set current(_: any) {
+        count += 1
+      },
+      get current() {
+        return null
+      },
+    }
+    expect('current' in ref).toBe(true)
+    const App2 = () => {
+      pin = usePin()
+      return jsx('div', { ref, class: 'hoge' })
+    }
+    root.render(jsx(App2, {}))
+    expect(document.body.innerHTML).toBe(
+      '<div class="hoge"></div><!--App2--><!--root-->',
+    )
+    expect(count).toBe(1)
+    pin()
+    expect(count).toBe(1)
+  })
+
+  it('should work with ref function', () => {
+    const { root, document } = createRoot()
+
+    let pin: () => void = needSet
+    let count = 0
+    let element: any
+    const ref = (e: any) => {
+      count += 1
+      element = e
+    }
+    const App = () => {
+      pin = usePin()
+      return jsx('div', { ref })
+    }
+    root.render(jsx(App, {}))
+    expect(document.body.innerHTML).toBe('<div></div><!--App--><!--root-->')
+    expect(element).toBe(document.body.firstChild)
+    expect(element.tagName).toBe('DIV')
+    expect(count).toBe(1)
+    pin()
+    expect(count).toBe(1)
   })
 })
