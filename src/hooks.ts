@@ -150,6 +150,15 @@ export const useMemo = <V>(f: () => V, deps: any[]): V => {
   return ctx.ref[1]
 }
 
+export const useCallback = <V extends (...args: any[]) => any>(
+  f: V,
+  deps: any[],
+): V => {
+  const ctx = useInnerContextRef()
+  if (!compareDeps(deps, ctx.ref?.[0])) ctx.ref = [deps, f]
+  return ctx.ref[1]
+}
+
 export const useReducer: <S, A, I = unknown>(
   reducer: (s: S, a: A) => S,
   ...args: [initialState: S] | [initialState: I, init: (i: I) => S]
