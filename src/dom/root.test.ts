@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { Window } from 'happy-dom'
 import { jsx } from '../jsx-runtime/jsx'
-import type { NodeContext } from '../hooks'
 import {
   createContext,
   useContext,
@@ -30,7 +29,7 @@ const createDocument = () => {
 const createRoot = () => {
   const { document } = createDocument()
   const runner = {
-    add: (ctx: NodeContext) => {
+    add: (ctx: { update: () => boolean }) => {
       ctx.update()
     },
   }
