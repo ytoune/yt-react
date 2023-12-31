@@ -3,6 +3,7 @@ import { Window } from 'happy-dom'
 import { jsx } from '../jsx-runtime/jsx'
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -280,6 +281,44 @@ describe('root', () => {
     pin()
     expect(document.body.innerHTML).toBe('2<!--App--><!--root-->')
     expect(count).toBe(2)
+  })
+
+  it('should work with useCallback', () => {
+    const { root, document } = createRoot()
+
+    let pin: () => void = needSet
+    let prevCallback: () => number = needSet
+    let callback: () => number = needSet
+    let num = 0
+    let count = 0
+    const App = () => {
+      pin = usePin()
+      callback = useCallback(() => {
+        count += 1
+        return count
+      }, [num])
+      return `ok`
+    }
+    root.render(jsx(App, {}))
+    expect(document.body.innerHTML).toBe('ok<!--App--><!--root-->')
+    expect(count).toBe(0)
+    expect(callback()).toBe(1)
+    expect(count).toBe(1)
+    prevCallback = callback
+    pin()
+    expect(callback).toBe(prevCallback)
+    expect(document.body.innerHTML).toBe('ok<!--App--><!--root-->')
+    expect(count).toBe(1)
+    expect(callback()).toBe(2)
+    expect(count).toBe(2)
+    num = 1
+    prevCallback = callback
+    pin()
+    expect(callback).not.toBe(prevCallback)
+    expect(document.body.innerHTML).toBe('ok<!--App--><!--root-->')
+    expect(count).toBe(2)
+    expect(callback()).toBe(3)
+    expect(count).toBe(3)
   })
 
   it('should work with useReducer', () => {
