@@ -5,7 +5,7 @@ import type { NodeInnerContext, NodeContext, Provided } from '../hooks'
 import type { VNode, ComponentReturnType } from '../jsx-runtime/jsx'
 
 interface InnerNode {
-  update: () => boolean
+  readonly update: () => boolean
 }
 interface Runner {
   add: (ctx: InnerNode) => void
