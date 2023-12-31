@@ -60,6 +60,8 @@ const validHasKeyItems = (v: readonly unknown[]) => {
   return true
 }
 
+const isRefObject = (v: any): v is { current: any } => !!(v && 'current' in v)
+
 export const createRootImpl =
   (document: Document, runner: Runner) => (rootElement: Element) => {
     const renderNode = (
@@ -171,6 +173,7 @@ export const createRootImpl =
       ctx.prev.items = nextItems
       return updated
     }
+    // eslint-disable-next-line complexity
     const renderHTMLElement = (
       ctx: NodeContext,
       node: VNode<any> & { type: string },
@@ -256,6 +259,11 @@ export const createRootImpl =
       }
       for (const [k, v] of Object.entries(rest)) {
         if (prevAttrs?.[k] === v) continue
+        if ('ref' === k) {
+          if ('function' === typeof v) v(n)
+          else if (isRefObject(v)) v.current = n
+          continue
+        }
         if (v || 0 === v) setAttribute(k, v)
         else removeAttribute(k)
       }
@@ -299,7 +307,10 @@ export const createRootImpl =
           let ret: ComponentReturnType
           try {
             startAndSetInnerContext(nodeInnerCtx)
-            ret = comp(prev.props)
+            const { ref, ...props } = prev.props
+            ret = comp(props)
+            if ('function' === typeof ref) ref(ret)
+            else if (isRefObject(ref)) ref.current = ret
           } finally {
             endAndResetInnerContext()
           }
