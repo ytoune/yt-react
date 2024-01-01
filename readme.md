@@ -4,6 +4,22 @@
 
 reimplementing react as an exercise
 
+## usage
+
+```javascript
+import { createRoot, useState } from '@ytoune/yt-react'
+const App = () => {
+  const [count, setCount] = useState(0)
+  return (
+    <div>
+      <p>count: {count}</p>
+      <button onClick={() => setCount(c => c + 1)}>+</button>
+    </div>
+  )
+}
+createRoot(document.body).render(<App />)
+```
+
 ## todo
 
 - [x] jsx, jsxs
