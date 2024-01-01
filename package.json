@@ -1,6 +1,6 @@
 {
   "name": "@ytoune/yt-react",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "reimplementing react as an exercise",
   "author": {
     "name": "ytoune"
@@ -12,28 +12,44 @@
   "source": "src/index.ts",
   "main": "dist/index.js",
   "module": "dist/index.module.js",
+  "import": "./dist/index.modern.mjs",
   "types": "dist/index.d.ts",
   "unpkg": "dist/index.umd.js",
   "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/index.module.js",
+      "umd": "./dist/index.umd.js",
+      "import": "./dist/index.modern.mjs",
+      "require": "./dist/index.js"
+    },
     "./jsx-runtime": {
-      "require": "./dist/jsx-runtime/index.js",
-      "default": "./dist/jsx-runtime/index.modern.mjs",
-      "types": "./dist/jsx-runtime/index.d.ts"
+      "types": "./dist/jsx-runtime/index.d.ts",
+      "browser": "./dist/jsx-runtime/index.module.js",
+      "umd": "./dist/jsx-runtime/index.umd.js",
+      "import": "./dist/jsx-runtime/index.modern.mjs",
+      "require": "./dist/jsx-runtime/index.js"
     },
     "./dom": {
-      "require": "./dist/dom/index.js",
-      "default": "./dist/dom/index.modern.mjs",
-      "types": "./dist/dom/index.d.ts"
+      "types": "./dist/dom/index.d.ts",
+      "browser": "./dist/dom/index.module.js",
+      "umd": "./dist/dom/index.umd.js",
+      "import": "./dist/dom/index.modern.mjs",
+      "require": "./dist/dom/index.js"
     },
     "./hyperscript": {
-      "require": "./dist/hyperscript.js",
-      "default": "./dist/hyperscript.modern.mjs",
-      "types": "./dist/hyperscript.d.ts"
+      "types": "./dist/hyperscript.d.ts",
+      "browser": "./dist/hyperscript.module.js",
+      "umd": "./dist/hyperscript.umd.js",
+      "import": "./dist/hyperscript.modern.mjs",
+      "require": "./dist/hyperscript.js"
     },
     "./hooks": {
-      "require": "./dist/hooks.js",
-      "default": "./dist/hooks.modern.mjs",
-      "types": "./dist/hooks.d.ts"
+      "types": "./dist/hooks.d.ts",
+      "browser": "./dist/hooks.module.js",
+      "umd": "./dist/hooks.umd.js",
+      "import": "./dist/hooks.modern.mjs",
+      "require": "./dist/hooks.js"
     }
   },
   "publishConfig": {
