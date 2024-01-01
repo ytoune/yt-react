@@ -112,6 +112,40 @@ describe('root', () => {
     )
   })
 
+  it('should work with keyed array', () => {
+    const { root, document } = createRoot()
+
+    let pin: () => void = needSet
+    let nums = [1, 2, 3, 4]
+    let count = 0
+    const Child = (p: { no: number }) => {
+      count += 1
+      return `c${p.no}`
+    }
+    const child = (no: number) => jsx(Child, { no }, no as unknown as string)
+    const App = () => {
+      pin = usePin()
+      return jsx('div', { children: [nums.map(child)] })
+    }
+    root.render(jsx(App, {}))
+    expect(document.body.innerHTML).toBe(
+      '<div><!--a.s-->c1<!--Child--><!--1--><!--i0-->c2<!--Child--><!--2--><!--i1-->c3<!--Child--><!--3--><!--i2-->c4<!--Child--><!--4--><!--i3--><!--a.e--><!--0--></div><!--App--><!--root-->',
+    )
+    expect(count).toBe(4)
+    nums = [1, 2, 4]
+    pin()
+    expect(document.body.innerHTML).toBe(
+      '<div><!--a.s-->c1<!--Child--><!--1--><!--i0-->c2<!--Child--><!--2--><!--i1-->c4<!--Child--><!--4--><!--i2--><!--a.e--><!--0--></div><!--App--><!--root-->',
+    )
+    expect(count).toBe(4)
+    nums = [4, 1, 5]
+    pin()
+    expect(document.body.innerHTML).toBe(
+      '<div><!--a.s-->c4<!--Child--><!--4--><!--i0-->c1<!--Child--><!--1--><!--i1-->c5<!--Child--><!--5--><!--i2--><!--a.e--><!--0--></div><!--App--><!--root-->',
+    )
+    expect(count).toBe(5)
+  })
+
   it('should work with usePin', () => {
     const { root, document } = createRoot()
 
