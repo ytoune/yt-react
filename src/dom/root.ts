@@ -50,16 +50,6 @@ const isArray: (v: unknown) => v is readonly unknown[] = Array.isArray
 const hasKey = <T>(v: T): v is T & { readonly key: unknown } =>
   undefined !== (v as any)?.key
 
-const validHasKeyItems = (v: readonly unknown[]) => {
-  const set = new Set()
-  for (const t of v)
-    if (hasKey(t)) {
-      if (set.has(t.key)) return false
-      set.add(t.key)
-    }
-  return true
-}
-
 const isRefObject = (v: any): v is { current: any } => !!(v && 'current' in v)
 
 export const createRootImpl =
@@ -91,6 +81,7 @@ export const createRootImpl =
       parent.insertBefore(n, after)
       return true
     }
+    // eslint-disable-next-line complexity
     const renderArray = (
       ctx: NodeContext,
       node: readonly unknown[],
@@ -128,11 +119,20 @@ export const createRootImpl =
       const [start, after] = ctx.prev.mark
       const prevItems = ctx.prev.items
       const nextItems: (readonly [NodeContext, Comment])[] = []
-      const isValid = validHasKeyItems(node)
-      const needKeys = new Set(node.filter(hasKey).map(v => v.key))
-      const map = new Map<any, [NodeContext, Node[]]>()
+      let isValid = true
+      const needKeys = new Map<unknown, number>()
+      for (const [i, v] of node.entries())
+        if (hasKey(v)) {
+          if (isValid && needKeys.has(v.key)) isValid = false
+          needKeys.set(v.key, i)
+        }
+      const map = new Map<any, [NodeContext, Node[] | null]>()
       for (const [i, [v, a]] of prevItems.entries())
-        if (hasKey(v.prev) && needKeys.has(v.prev.key)) {
+        if (isValid && hasKey(v.prev) && needKeys.has(v.prev.key)) {
+          if (needKeys.get(v.prev.key) === i) {
+            map.set(v.prev.key, [v, null])
+            continue
+          }
           const s = prevItems[i - 1]?.[1] ?? start
           const nodes: Node[] = []
           for (let t: Node | null = s; (t = t.nextSibling) && t !== a; )
