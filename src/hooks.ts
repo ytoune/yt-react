@@ -63,24 +63,21 @@ export interface Context<T> {
 }
 const idxKey = ':yt-react:context-ref-idx'
 const ctxKey = ':yt-react:inner-context'
-const manager = (globalThis || window) as any as {
+const manager = globalThis as any as {
   ':yt-react:context-ref-idx': 0
   ':yt-react:inner-context': NodeInnerContext | null
 }
-undefined === manager[idxKey] &&
-  Object.defineProperty(manager, idxKey, {
-    value: 0,
-    writable: true,
-    configurable: true,
-    enumerable: false,
-  })
-undefined === manager[ctxKey] &&
-  Object.defineProperty(manager, ctxKey, {
-    value: null,
-    writable: true,
-    configurable: true,
-    enumerable: false,
-  })
+const def = (key: string, value: any) => {
+  undefined === (manager as any)[key] &&
+    Object.defineProperty(manager, key, {
+      value,
+      writable: true,
+      configurable: true,
+      enumerable: false,
+    })
+}
+def(idxKey, 0)
+def(ctxKey, null)
 
 const useInnerContext = () => {
   if (manager[ctxKey]) return manager[ctxKey]
