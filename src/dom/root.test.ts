@@ -69,6 +69,59 @@ describe('root', () => {
     expect(document.body.innerHTML).toBe('<div>ok<!--0--></div><!--root-->')
   })
 
+  it('should work with delayed render', () => {
+    const { document } = createDocument()
+    const store = new Set<{ update: () => boolean }>()
+    const runner = {
+      add: (ctx: { update: () => boolean }) => {
+        store.add(ctx)
+      },
+    }
+    const updateAll = () => {
+      for (const ctx of store) {
+        ctx.update()
+        store.delete(ctx)
+      }
+    }
+    let count = 0
+    const originalCreate = document.createTextNode
+    document.createTextNode = (text: string) => {
+      count += 1
+      return originalCreate.call(document, text)
+    }
+    const root = createRootImpl(document, runner)(document.body)
+
+    let pin: () => void = needSet
+    let num = 0
+    const App = () => {
+      pin = usePin()
+      return jsx('div', { children: `${num}` })
+    }
+
+    root.render(jsx(App, {}))
+    expect(document.body.innerHTML).toBe(
+      '<div>0<!--0--></div><!--App--><!--root-->',
+    )
+    expect(count).toBe(1)
+    num = 1
+    pin()
+    expect(document.body.innerHTML).toBe(
+      '<div>0<!--0--></div><!--App--><!--root-->',
+    )
+    expect(count).toBe(1)
+    num = 2
+    pin()
+    expect(document.body.innerHTML).toBe(
+      '<div>0<!--0--></div><!--App--><!--root-->',
+    )
+    expect(count).toBe(1)
+    updateAll()
+    expect(document.body.innerHTML).toBe(
+      '<div>2<!--0--></div><!--App--><!--root-->',
+    )
+    expect(count).toBe(2)
+  })
+
   it('should work with array', () => {
     const { root, document } = createRoot()
 

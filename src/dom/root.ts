@@ -343,7 +343,7 @@ export const createRootImpl =
         ctx2 = initContext(update, parent, after2, provided)
         const effects = new Set<() => void>()
         const nodeInnerCtx: NodeInnerContext = {
-          pin: update,
+          pin: ctx2.pin,
           effects,
           onCleanup: new Set(),
           refs: [],
