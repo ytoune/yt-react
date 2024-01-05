@@ -2,7 +2,7 @@
 
 import { startAndSetInnerContext, endAndResetInnerContext } from '../hooks'
 import type { NodeInnerContext, NodeContext, Provided } from '../hooks'
-import type { VNode, ComponentReturnType } from '../jsx-runtime/jsx'
+import type { VNode, ComponentReturnType, JSX } from '../jsx-runtime/jsx'
 
 interface InnerNode {
   readonly update: () => boolean
@@ -52,8 +52,17 @@ const hasKey = <T>(v: T): v is T & { readonly key: unknown } =>
 
 const isRefObject = (v: any): v is { current: any } => !!(v && 'current' in v)
 
+interface IDocument {
+  createComment(data: string): Comment
+  createTextNode(data: string): Text
+  createElement(
+    tagName: keyof HTMLElementTagNameMap,
+    options?: ElementCreationOptions,
+  ): HTMLElement
+}
+
 export const createRootImpl =
-  (document: Document, runner: Runner) => (rootElement: Element) => {
+  (document: IDocument, runner: Runner) => (rootElement: Element) => {
     const renderNode = (
       ctx: NodeContext,
       node: ComponentReturnType,
@@ -176,7 +185,7 @@ export const createRootImpl =
     // eslint-disable-next-line complexity
     const renderHTMLElement = (
       ctx: NodeContext,
-      node: VNode<any> & { type: string },
+      node: VNode<any> & { type: keyof JSX.IntrinsicElements },
     ): boolean => {
       let updated = false
       const hash = node.type
