@@ -404,3 +404,7 @@ export const createRoot =
     : () => {
         throw new Error('no document')
       }
+
+export const render = (node: VNode<any>, rootElement: Element) => {
+  createRoot(rootElement).render(node)
+}
