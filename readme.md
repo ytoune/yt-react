@@ -35,3 +35,6 @@ createRoot(document.body).render(<App />)
 - [x] array children, key prop
 - [x] ref prop
 - [x] useCallBack
+
+- [ ] style
+- [ ] dangerouslyuSetInnerHTML
